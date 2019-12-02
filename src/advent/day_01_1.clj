@@ -62,8 +62,7 @@
            (t/is (= 33583 (module-fuel 100756))))}
   [mass]
   (-> mass
-    (/ 3)
-    (int)
+    (quot 3)
     (- 2)))
 
 
