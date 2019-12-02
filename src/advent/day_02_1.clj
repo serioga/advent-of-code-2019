@@ -130,23 +130,28 @@ with the value 2. What value is left at position 0 after the program halts?"
       1 (recur program! (run-op! program! idx +))
       2 (recur program! (run-op! program! idx *))
       99 (do
-           (clojure.pprint/pprint program!)
+           #_(clojure.pprint/pprint program!)
            (aget program! 0)))))
 
 
 (defn init-program
-  "Replace position 1 with the value 12 and replace position 2 with the value 2."
-  [program]
+  "Replace position 1 with the `noun` and replace position 2 with the `verb`."
+  [program, noun, verb]
   (doto (clone program)
-    (aset 1 12)
-    (aset 2 2)))
+    (aset 1 ^int noun)
+    (aset 2 ^int verb)))
+
+
+(defn init-and-run
+  [program, noun, verb]
+  (-> program
+    (init-program noun verb)
+    (run-program)))
 
 
 (defn solve
   []
-  (-> input
-    (init-program)
-    (run-program)))
+  (init-and-run input 12 2))
 
 
 (comment
