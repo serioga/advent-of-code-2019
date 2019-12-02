@@ -51,6 +51,34 @@
         sum))))
 
 
+(defn module-fuel-added
+  "Fuel required to launch a given module is based on its mass."
+  {:test (fn []
+           (t/is (= 2 (module-fuel-added 14)))
+           (t/is (= 966 (module-fuel-added 1969)))
+           (t/is (= 50346 (module-fuel-added 100756))))}
+  [mass]
+  (->> (iterate day-01-1/module-fuel mass)
+    (drop 1)
+    (take-while pos?)
+    (reduce + 0)))
+
+
+(defn module-fuel-added
+  "Fuel required to launch a given module is based on its mass."
+  {:test (fn []
+           (t/is (= 2 (module-fuel-added 14)))
+           (t/is (= 966 (module-fuel-added 1969)))
+           (t/is (= 50346 (module-fuel-added 100756))))}
+  [mass]
+  (->>
+    (iterate day-01-1/module-fuel mass)
+    (transduce (comp
+                 (drop 1)
+                 (take-while pos?))
+      + 0)))
+
+
 (defn total-fuel-added-requirements
   "The sum of the fuel requirements for all of the modules on your spacecraft."
   [input]
