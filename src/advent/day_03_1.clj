@@ -66,45 +66,44 @@ What is the Manhattan distance from the central port to the closest intersection
 
 ;; Input preparation
 
-(defn parse-path-step
+(defn ^:private path-cmd
   {:test (fn []
-           (t/is (= [\R 75] (parse-path-step "R75"))))}
+           (t/is (= [\R 75] (path-cmd "R75"))))}
   [s]
   (let [code (first s)
         num (edn/read-string (subs s 1))]
     [code num]))
 
 
-(defn read-input-path
+(defn ^:private compile-path
   [s]
   (->> (string/split s #",")
-    (map parse-path-step)))
+    (map path-cmd)))
 
 
 #_(comment
-    (t/test-var #'parse-path-step)
-    (read-input-path "R75,D30,R83,U83,L12,D49,R71,U7,L72"))
+    (t/test-var #'path-cmd)
+    (compile-path "R75,D30,R83,U83,L12,D49,R71,U7,L72"))
 
 
 (def input
-  (let [[w1 w2] (-> "advent/day_03_input.txt"
+  (let [[s1 s2] (-> "advent/day_03_input.txt"
                   (io/resource)
                   (slurp)
-                  (string/split-lines)
-                  (->> (map read-input-path)))]
-    {:path1 w1
-     :path2 w2}))
+                  (string/split-lines))]
+    {:path1 s1
+     :path2 s2}))
 
 
 ;; Task solution
 
-(defn pt
+(defn ->pt
   "Construct grid point."
   [x y]
   [x y])
 
 
-(def pt0 (pt 0 0))
+(def pt0 (->pt 0 0))
 
 
 (defn pt-x [p] (p 0))
@@ -140,17 +139,19 @@ What is the Manhattan distance from the central port to the closest intersection
   (vector pt0))
 
 
+(defn apply-path-cmd
+  "Generate additional points in the wire from single command like `R8`."
+  [wire [code num]]
+  (into wire
+    (->> (iterate (path-update-point code) (peek wire))
+      (take (inc num))
+      (drop 1))))
+
+
 (defn build-wire
   "Build collection of wire points from path instructions."
   [path]
-  (let [build-step (fn build-step
-                     [wire [code num]]
-                     (into wire
-                       (->> (iterate (path-update-point code) (peek wire))
-                         (take (inc num))
-                         (drop 1))))]
-
-    (reduce build-step (new-wire) path)))
+  (reduce apply-path-cmd (new-wire) (compile-path path)))
 
 
 (defn find-cross
@@ -163,20 +164,23 @@ What is the Manhattan distance from the central port to the closest intersection
   {:test (fn []
            (t/is (= 6
                    (find-cross-min-dist
-                     (build-wire (read-input-path "R8,U5,L5,D3"))
-                     (build-wire (read-input-path "U7,R6,D4,L4")))))
+                     (build-wire "R8,U5,L5,D3")
+                     (build-wire "U7,R6,D4,L4"))))
            (t/is (= 159
                    (find-cross-min-dist
-                     (build-wire (read-input-path "R75,D30,R83,U83,L12,D49,R71,U7,L72"))
-                     (build-wire (read-input-path "U62,R66,U55,R34,D71,R55,D58,R83")))))
+                     (build-wire "R75,D30,R83,U83,L12,D49,R71,U7,L72")
+                     (build-wire "U62,R66,U55,R34,D71,R55,D58,R83"))))
            (t/is (= 135
                    (find-cross-min-dist
-                     (build-wire (read-input-path "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"))
-                     (build-wire (read-input-path "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7"))))))}
+                     (build-wire "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51")
+                     (build-wire "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")))))}
   [w1 w2]
   (apply min (mapv
                (partial dist pt0)
                (find-cross w1 w2))))
+
+#_(comment
+    (t/test-var #'find-cross-min-dist))
 
 
 (defn solve
@@ -189,11 +193,11 @@ What is the Manhattan distance from the central port to the closest intersection
 
 (comment
   (time (solve))
-  (t/test-var #'find-cross-min-dist)
+  (t/run-tests)
   (new-wire)
-  (build-wire (read-input-path "R8,U5,L5,D3"))
-  (build-wire (read-input-path "U7,R6,D4,L4"))
+  (build-wire "R8,U5,L5,D3")
+  (build-wire "U7,R6,D4,L4")
   (find-cross
-    (build-wire (read-input-path "R8,U5,L5,D3"))
-    (build-wire (read-input-path "U7,R6,D4,L4")))
-  (dist (pt 1 1) (pt 1 1)))
+    (build-wire "R8,U5,L5,D3")
+    (build-wire "U7,R6,D4,L4"))
+  (dist (->pt 1 1) (->pt 1 1)))
