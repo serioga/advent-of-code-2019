@@ -57,9 +57,9 @@ What is the Manhattan distance from the central port to the closest intersection
   (:require
     [clojure.edn :as edn]
     [clojure.java.io :as io]
+    [clojure.set :as set]
     [clojure.string :as string]
-    [clojure.test :as t]
-    [clojure.set :as set]))
+    [clojure.test :as t]))
 
 (set! *warn-on-reflection* true)
 
