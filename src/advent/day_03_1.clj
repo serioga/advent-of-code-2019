@@ -137,15 +137,16 @@ What is the Manhattan distance from the central port to the closest intersection
 
 (defn new-wire
   []
-  (list pt0))
+  (vector pt0))
 
 
-(defn build-wire-points
+(defn build-wire
+  "Build collection of wire points from path instructions."
   [path]
-  (let [build-step (fn
+  (let [build-step (fn build-step
                      [wire [code num]]
                      (into wire
-                       (->> (iterate (path-update-point code) (first wire))
+                       (->> (iterate (path-update-point code) (peek wire))
                          (take (inc num))
                          (drop 1))))]
 
@@ -159,6 +160,19 @@ What is the Manhattan distance from the central port to the closest intersection
 
 
 (defn find-cross-min-dist
+  {:test (fn []
+           (t/is (= 6
+                   (find-cross-min-dist
+                     (build-wire (read-input-path "R8,U5,L5,D3"))
+                     (build-wire (read-input-path "U7,R6,D4,L4")))))
+           (t/is (= 159
+                   (find-cross-min-dist
+                     (build-wire (read-input-path "R75,D30,R83,U83,L12,D49,R71,U7,L72"))
+                     (build-wire (read-input-path "U62,R66,U55,R34,D71,R55,D58,R83")))))
+           (t/is (= 135
+                   (find-cross-min-dist
+                     (build-wire (read-input-path "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"))
+                     (build-wire (read-input-path "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7"))))))}
   [w1 w2]
   (apply min (mapv
                (partial dist pt0)
@@ -169,25 +183,17 @@ What is the Manhattan distance from the central port to the closest intersection
   []
   (let [{:keys [path1 path2]} input]
     (find-cross-min-dist
-      (build-wire-points path1)
-      (build-wire-points path2))))
+      (build-wire path1)
+      (build-wire path2))))
 
 
 (comment
   (time (solve))
+  (t/test-var #'find-cross-min-dist)
   (new-wire)
-  (build-wire-points (read-input-path "R8,U5,L5,D3"))
-  (build-wire-points (read-input-path "U7,R6,D4,L4"))
+  (build-wire (read-input-path "R8,U5,L5,D3"))
+  (build-wire (read-input-path "U7,R6,D4,L4"))
   (find-cross
-    (build-wire-points (read-input-path "R8,U5,L5,D3"))
-    (build-wire-points (read-input-path "U7,R6,D4,L4")))
-  (find-cross-min-dist
-    (build-wire-points (read-input-path "R8,U5,L5,D3"))
-    (build-wire-points (read-input-path "U7,R6,D4,L4")))
-  (find-cross-min-dist
-    (build-wire-points (read-input-path "R75,D30,R83,U83,L12,D49,R71,U7,L72"))
-    (build-wire-points (read-input-path "U62,R66,U55,R34,D71,R55,D58,R83")))
-  (find-cross-min-dist
-    (build-wire-points (read-input-path "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"))
-    (build-wire-points (read-input-path "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")))
+    (build-wire (read-input-path "R8,U5,L5,D3"))
+    (build-wire (read-input-path "U7,R6,D4,L4")))
   (dist (pt 1 1) (pt 1 1)))
