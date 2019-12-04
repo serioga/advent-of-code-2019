@@ -35,6 +35,20 @@ How many different passwords within the range given in your puzzle input meet al
     (t/test-var #'has-exact-digit-count?))
 
 
+(defn has-double?
+  "Check if string contains a group of exactly two chars."
+  {:test (fn []
+           (t/is (true? (has-exact-digit-count? "112233")))
+           (t/is (false? (has-exact-digit-count? "123444"))))}
+  [s]
+  (boolean
+    (some #(= 2 (count %))
+      (partition-by identity s))))
+
+#_(comment
+    (t/test-var #'has-double?))
+
+
 (defn password?
   {:test (fn []
            (t/is (true? (password? 112233)))
@@ -44,7 +58,7 @@ How many different passwords within the range given in your puzzle input meet al
   (let [s (str n)]
     (and
       (apply <= (mapv char-code s))
-      (has-exact-digit-count? s))))
+      (has-double? s))))
 
 #_(comment
     (t/test-var #'password?))
