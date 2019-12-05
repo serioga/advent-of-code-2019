@@ -167,7 +167,7 @@ the program produce?"
     1 (immediate-param program addr n)))
 
 
-(defn run-op!
+(defn run-binary-op!
   "Execute +/* operation and return next address to operate on."
   ^long [^ints program!, ^long addr, op]
   (let [a (read-param program! addr 1)
@@ -197,7 +197,6 @@ the program produce?"
   (+ addr 2))
 
 
-
 (defn run-program
   "Execute program and return value at position 0"
   {:test (fn []
@@ -211,8 +210,8 @@ the program produce?"
   (loop [program! (clone program)
          addr 0]
     (case (op-code (read-mem program! addr))
-      1 (recur program! (run-op! program! addr +))
-      2 (recur program! (run-op! program! addr *))
+      1 (recur program! (run-binary-op! program! addr +))
+      2 (recur program! (run-binary-op! program! addr *))
       3 (recur program! (run-input! program! addr *io))
       4 (recur program! (run-output! program! addr *io))
       99 (do
