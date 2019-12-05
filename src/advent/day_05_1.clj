@@ -114,7 +114,7 @@ the program produce?"
   (aget program!, addr))
 
 
-(defn read-param
+(defn read-mem-nth
   [^ints program, addr, n]
   (read-mem program (+ addr n)))
 
@@ -122,7 +122,12 @@ the program produce?"
 (defn position-param
   [^ints program, addr, n]
   (read-mem program
-    (read-param program addr n)))
+    (read-mem-nth program addr n)))
+
+
+(defn immediate-param
+  [^ints program, addr, n]
+  (read-mem-nth program, addr, n))
 
 
 (defn write-mem!
@@ -130,13 +135,45 @@ the program produce?"
   (aset program!, addr, ^int v))
 
 
+(defn op-code
+  ^long [cmd]
+  (if (< cmd 99) cmd, (rem cmd 100)))
+
+
+(defn exp [x n]
+  (if (zero? n)
+    1
+    (* x (exp x (dec n)))))
+
+
+(defn op-param-mode
+  {:test (fn []
+           (t/is (= 0 (op-param-mode 1002 1)))
+           (t/is (= 1 (op-param-mode 1002 2)))
+           (t/is (= 0 (op-param-mode 1002 3))))}
+  ^long [cmd n]
+  (-> cmd
+    (quot (exp 10 (inc n)))
+    (rem 10)))
+
+#_(comment
+    (t/test-var #'op-param-mode))
+
+
+(defn read-param
+  [^ints program, addr, n]
+  (case (op-param-mode (read-mem program addr) n)
+    0 (position-param program addr n)
+    1 (immediate-param program addr n)))
+
+
 (defn run-op!
   "Execute +/* operation and return next address to operate on."
   ^long [^ints program!, ^long addr, op]
-  (let [a (position-param program! addr 1)
-        b (position-param program! addr 2)
+  (let [a (read-param program! addr 1)
+        b (read-param program! addr 2)
         res (int (op a b))
-        res-addr (read-param program! addr 3)]
+        res-addr (immediate-param program! addr 3)]
     (write-mem! program! res-addr res)
     (+ addr 4)))
 
@@ -145,8 +182,8 @@ the program produce?"
   "Execute input operation and return next address to operate on."
   ^long [^ints program!, ^long addr, *io]
   (let [res (deref *io)
-        res-addr (read-param program! addr 1)]
-    (println "Input" res "->" res-addr)
+        res-addr (immediate-param program! addr 1)]
+    (println "Input" res-addr "<<" res)
     (write-mem! program! res-addr res))
   (+ addr 2))
 
@@ -156,8 +193,9 @@ the program produce?"
   ^long [^ints program, ^long addr, *io]
   (let [v (position-param program addr 1)]
     (reset! *io v)
-    (println "Output" v "<-" addr))
+    (println "Output" addr ">>" v))
   (+ addr 2))
+
 
 
 (defn run-program
@@ -168,23 +206,31 @@ the program produce?"
            (t/is (== 2 (run-program [2, 3, 0, 3, 99] (atom 1))))
            (t/is (== 2 (run-program [2, 4, 4, 5, 99, 0] (atom 1))))
            (t/is (== 30 (run-program [1, 1, 1, 4, 99, 5, 6, 0, 99] (atom 1))))
-           (t/is (== 1 (run-program [3, 0, 4, 0, 99] (atom 1)))))}
+           (t/is (== 1002 (run-program [1002, 4, 3, 4, 33] (atom 1)))))}
   [program, *io]
   (loop [program! (clone program)
          addr 0]
-    (case (aget program! addr)
+    (case (op-code (read-mem program! addr))
       1 (recur program! (run-op! program! addr +))
       2 (recur program! (run-op! program! addr *))
       3 (recur program! (run-input! program! addr *io))
       4 (recur program! (run-output! program! addr *io))
       99 (do
            #_(clojure.pprint/pprint program!)
-           (aget program! 0)))))
+           (read-mem program! 0)))))
 
 #_(comment
     (t/test-var #'run-program))
 
 
+(defn solve
+  [init-id]
+  (let [*io (atom init-id)]
+    (run-program input *io)
+    (deref *io)))
+
+
 (comment
+  (solve 1)
   (t/run-tests)
   (clojure.pprint/pprint input))
