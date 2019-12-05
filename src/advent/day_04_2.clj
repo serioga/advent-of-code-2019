@@ -38,8 +38,8 @@ How many different passwords within the range given in your puzzle input meet al
 (defn has-double?
   "Check if string contains a group of exactly two chars."
   {:test (fn []
-           (t/is (true? (has-exact-digit-count? "112233")))
-           (t/is (false? (has-exact-digit-count? "123444"))))}
+           (t/is (true? (has-double? "112233")))
+           (t/is (false? (has-double? "123444"))))}
   [s]
   (boolean
     (some #(= 2 (count %))
