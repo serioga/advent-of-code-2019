@@ -23,7 +23,8 @@
   ([mem in]
    #:state{:addr 0
            :mem (vec mem)
-           :in in
+           :in (cond-> in
+                 (not (coll? in)) list)
            :out []
            :exit-code nil}))
 
@@ -154,10 +155,12 @@
 
 (defmethod operate 3
   [{:state/keys [in] :as state}]
-  (let [res-addr (immediate-param state 1)]
-    (println "Input" res-addr "<<" in)
+  (let [res-addr (immediate-param state 1)
+        v (first in)]
+    (println "Input" res-addr "<<" v)
     (-> state
-      (write-mem res-addr in)
+      (write-mem res-addr v)
+      (update :state/in rest)
       (move-addr 2))))
 
 
@@ -236,8 +239,5 @@
 (comment
   (time (solve 5))
   (time (solve 1))
-  (assoc-in {:mem [1 2 3]}
-    [:mem 1] :x)
-  (update [1 2 3] 1 inc)
   (t/run-tests))
 
