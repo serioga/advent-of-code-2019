@@ -169,5 +169,5 @@ What is the diagnostic code for system ID 5?"
 
 
 (comment
-  (solve 5)
+  (time (solve 5))
   (t/run-tests))
