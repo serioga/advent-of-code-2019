@@ -52,7 +52,7 @@ the number of 2 digits?"
 
 (defn layers
   [image w h]
-  (partition (* w h) image))
+  (map vec (partition (* w h) image)))
 
 
 (defn solve
