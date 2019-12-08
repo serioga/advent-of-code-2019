@@ -24,7 +24,7 @@
    #:state{:addr 0
            :mem (vec mem)
            :in (cond-> in
-                 (not (coll? in)) list)
+                 (not (coll? in)) vector)
            :out []
            :exit-code nil}))
 
@@ -160,7 +160,7 @@
     (println "Input" res-addr "<<" v)
     (-> state
       (write-mem res-addr v)
-      (update :state/in rest)
+      (update :state/in subvec 1)
       (move-addr 2))))
 
 
@@ -198,42 +198,58 @@
   (assoc state :state/exit-code (read-mem state 0)))
 
 
-(defn run-program
-  "Execute program and return last output."
-  {:test (fn []
-           (t/is (== 1 (run-program [3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8] 8)))
-           (t/is (== 0 (run-program [3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8] 9)))
-           (t/is (== 1 (run-program [3, 3, 1108, -1, 8, 3, 4, 3, 99] 8)))
-           (t/is (== 0 (run-program [3, 3, 1108, -1, 8, 3, 4, 3, 99] 9)))
-           (t/is (== 0 (run-program [3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9] 0)))
-           (t/is (== 1 (run-program [3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9] 2)))
-           (t/is (== 0 (run-program [3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1] 0)))
-           (t/is (== 1 (run-program [3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1] 2)))
-           #_(t/is (== 999 (run-program [3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31,
-                                         1106, 0, 36, 98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104,
-                                         999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20, 1105, 1, 46, 98, 99] 7)))
-           (t/is (== 1000 (run-program [3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31,
-                                        1106, 0, 36, 98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104,
-                                        999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20, 1105, 1, 46, 98, 99] 8)))
-           (t/is (== 1001 (run-program [3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31,
-                                        1106, 0, 36, 98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104,
-                                        999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20, 1105, 1, 46, 98, 99] 9))))}
-  [mem, in]
+(defn run-program-until
+  "Execute program until `(stop? state)` is true and return state."
+  [state stop?]
   (->>
-    (iterate operate (init-state mem in))
+    (iterate operate state)
     (reduce
       (fn [_ state]
         (cond-> state
-          (halt? state) reduced)))
+          (stop? state) reduced)))))
+
+
+(defn run-program
+  "Execute program until `(stop? state)` is true and return state."
+  [state stop?]
+  (->>
+    (iterate operate state)
+    (some #(when (stop? %) %))))
+
+
+(defn run-tests
+  "Execute diagnostic program and return last output."
+  {:test (fn []
+           (t/is (== 1 (run-tests [3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8] 8)))
+           (t/is (== 0 (run-tests [3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8] 9)))
+           (t/is (== 1 (run-tests [3, 3, 1108, -1, 8, 3, 4, 3, 99] 8)))
+           (t/is (== 0 (run-tests [3, 3, 1108, -1, 8, 3, 4, 3, 99] 9)))
+           (t/is (== 0 (run-tests [3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9] 0)))
+           (t/is (== 1 (run-tests [3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9] 2)))
+           (t/is (== 0 (run-tests [3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1] 0)))
+           (t/is (== 1 (run-tests [3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1] 2)))
+           #_(t/is (== 999 (run-tests [3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31,
+                                       1106, 0, 36, 98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104,
+                                       999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20, 1105, 1, 46, 98, 99] 7)))
+           (t/is (== 1000 (run-tests [3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31,
+                                      1106, 0, 36, 98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104,
+                                      999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20, 1105, 1, 46, 98, 99] 8)))
+           (t/is (== 1001 (run-tests [3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31,
+                                      1106, 0, 36, 98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104,
+                                      999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20, 1105, 1, 46, 98, 99] 9))))}
+  [mem, in]
+  (-> (init-state mem in)
+    (run-program halt?)
     (last-output)))
 
+
 #_(comment
-    (t/test-var #'run-program))
+    (t/test-var #'run-tests))
 
 
 (defn solve
   [init-id]
-  (run-program input init-id))
+  (run-tests input init-id))
 
 
 (comment

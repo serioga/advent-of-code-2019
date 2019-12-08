@@ -73,7 +73,9 @@ Try every combination of phase settings on the amplifiers. What is the highest s
 sent to the thrusters?"
 
   (:require
-    [advent.day-05-2a :refer [run-program]]
+    [advent.day-05-2a :refer [init-state
+                              last-output
+                              run-program]]
     [clojure.edn :as edn]
     [clojure.java.io :as io]
     [clojure.string :as string]
@@ -84,7 +86,9 @@ sent to the thrusters?"
 
 (defn test-amplifier
   [program phase in]
-  (run-program program [phase in]))
+  (-> (init-state program [phase in])
+    (run-program last-output)
+    (last-output)))
 
 
 (defn thruster-signal
@@ -100,10 +104,13 @@ sent to the thrusters?"
                             [3, 31, 3, 32, 1002, 32, 10, 32, 1001, 31, -2, 31, 1007, 31, 0, 33,
                              1002, 33, 7, 33, 1, 33, 31, 31, 1, 32, 31, 31, 4, 31, 99, 0, 0, 0]
                             [1, 0, 4, 3, 2]))))}
-  [program phases]
-  (reduce (fn [in phase]
-            (test-amplifier program phase in))
-    0 phases))
+  ([program phases]
+   (thruster-signal program phases 0))
+
+  ([program phases in]
+   (reduce (fn [in phase]
+             (test-amplifier program phase in))
+     in phases)))
 
 #_(comment
     (t/test-var #'thruster-signal))
