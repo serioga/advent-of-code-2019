@@ -48,8 +48,6 @@ noun + verb? (For example, if noun=12 and verb=2, the answer would be 1202.)
 
 
 (defn try-run
-  {:test (fn []
-           (t/is (== 1202 (try-run 12 2))))}
   [noun, verb]
   (part1/init-and-run part1/input, noun, verb))
 

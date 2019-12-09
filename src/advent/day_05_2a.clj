@@ -34,10 +34,7 @@
    (read-mem state addr))
 
   ([{:state/keys [mem]}, addr]
-   (mem addr))
-
-  ([{:state/keys [mem]}, addr, offset]
-   (mem (+ addr offset))))
+   (mem addr)))
 
 
 (defn write-mem
@@ -90,22 +87,16 @@
     (t/test-var #'nth-param-mode))
 
 
-(defn position-param
+(defn param-addr
   [{:state/keys [addr] :as state}, n]
-  (read-mem state
-    (read-mem state addr n)))
-
-
-(defn immediate-param
-  [{:state/keys [addr] :as state}, n]
-  (read-mem state, addr, n))
+  (case (nth-param-mode (read-mem state addr) n)
+    0 (read-mem state (+ addr n))
+    1 (+ addr n)))
 
 
 (defn read-param
   [state, n]
-  (case (nth-param-mode (read-mem state) n)
-    0 (position-param state n)
-    1 (immediate-param state n)))
+  (read-mem state (param-addr state n)))
 
 
 (defmulti operate
@@ -120,7 +111,7 @@
   [state, op]
   (let [a (read-param state 1)
         b (read-param state 2)
-        res-addr (immediate-param state 3)]
+        res-addr (param-addr state 3)]
     (-> state
       (write-mem res-addr (op a b))
       (move-addr 4))))
@@ -137,7 +128,7 @@
   [state, op]
   (let [a (read-param state 1)
         b (read-param state 2)
-        res-addr (immediate-param state 3)]
+        res-addr (param-addr state 3)]
     (-> state
       (write-mem res-addr (if (op a b) 1, 0))
       (move-addr 4))))
@@ -155,7 +146,7 @@
 
 (defmethod operate 3
   [{:state/keys [in] :as state}]
-  (let [res-addr (immediate-param state 1)
+  (let [res-addr (param-addr state 1)
         v (first in)]
     (println "Input" res-addr "<<" v)
     (-> state
@@ -166,7 +157,7 @@
 
 (defmethod operate 4
   [state]
-  (let [v (position-param state 1)]
+  (let [v (read-param state 1)]
     (println "Output" v)
     (-> state
       (update :state/out conj v)

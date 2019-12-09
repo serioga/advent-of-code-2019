@@ -87,13 +87,10 @@ keycode does it produce?"
    (read-mem state addr))
 
   ([{:state/keys [mem]}, addr]
-   (get mem addr 0))
-
-  ([{:state/keys [mem]}, addr, offset]
-   (get mem (+ addr offset) 0)))
+   (get mem addr 0)))
 
 
-(defn write-expand
+(defn write-ex
   [arr i v]
   (let [i-max (dec (count arr))]
     (if (<= i i-max)
@@ -105,7 +102,7 @@ keycode does it produce?"
 
 (defn write-mem
   [{:state/keys [mem] :as state}, addr, v]
-  (assoc state :state/mem (write-expand mem addr v)))
+  (assoc state :state/mem (write-ex mem addr v)))
 
 
 (defn move-addr
@@ -153,29 +150,19 @@ keycode does it produce?"
     (t/test-var #'nth-param-mode))
 
 
-(defn position-param
+(defn param-addr
   [{:state/keys [addr] :as state}, n]
-  (read-mem state
-    (read-mem state addr n)))
-
-
-(defn immediate-param
-  [{:state/keys [addr] :as state}, n]
-  (read-mem state, addr, n))
-
-
-(defn relative-param
-  [{:state/keys [addr relative-base] :as state}, n]
-  (read-mem state
-    (+ relative-base, (read-mem state addr n))))
+  (case (nth-param-mode (read-mem state addr) n)
+    0 (read-mem state (+ addr n))
+    1 (+ addr n)
+    2 (+
+        (read-mem state (+ addr n))
+        (:state/relative-base state))))
 
 
 (defn read-param
   [state, n]
-  (case (nth-param-mode (read-mem state) n)
-    0 (position-param state n)
-    1 (immediate-param state n)
-    2 (relative-param state n)))
+  (read-mem state (param-addr state n)))
 
 
 (defmulti operate
@@ -190,7 +177,7 @@ keycode does it produce?"
   [state, op]
   (let [a (read-param state 1)
         b (read-param state 2)
-        res-addr (immediate-param state 3)]
+        res-addr (param-addr state 3)]
     (-> state
       (write-mem res-addr (op a b))
       (move-addr 4))))
@@ -207,7 +194,7 @@ keycode does it produce?"
   [state, op]
   (let [a (read-param state 1)
         b (read-param state 2)
-        res-addr (immediate-param state 3)]
+        res-addr (param-addr state 3)]
     (-> state
       (write-mem res-addr (if (op a b) 1, 0))
       (move-addr 4))))
@@ -225,8 +212,7 @@ keycode does it produce?"
 
 (defmethod operate 3
   [{:state/keys [in] :as state}]
-  (println "op 3" in)
-  (let [res-addr (read-param state 1)
+  (let [res-addr (param-addr state 1)
         v (first in)]
     (println "Input" res-addr "<<" v)
     (-> state
@@ -267,7 +253,7 @@ keycode does it produce?"
 (defmethod operate 9
   [state]
   (let [offset (read-param state 1)]
-    (println "Adjusts the relative base" offset)
+    #_(println "Adjusts the relative base" offset)
     (-> state
       (update :state/relative-base + offset)
       (move-addr 2))))
@@ -323,9 +309,5 @@ keycode does it produce?"
 (comment
   (solve 1)
   (t/run-tests)
-  (do input)
-  (-> (init-state [109 19, 204 -34, 99])
-    (assoc :state/relative-base 2000)
-    (operate)
-    (operate)))
+  (do input))
 
