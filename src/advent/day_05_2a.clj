@@ -198,17 +198,6 @@
   (assoc state :state/exit-code (read-mem state 0)))
 
 
-(defn run-program-until
-  "Execute program until `(stop? state)` is true and return state."
-  [state stop?]
-  (->>
-    (iterate operate state)
-    (reduce
-      (fn [_ state]
-        (cond-> state
-          (stop? state) reduced)))))
-
-
 (defn run-program
   "Execute program until `(stop? state)` is true and return state."
   [state stop?]
