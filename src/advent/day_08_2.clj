@@ -61,7 +61,7 @@ What message is produced after decoding your image?"
 
 (defn str-pix
   [x]
-  (if (= 1 x) "⬛ " "⬜ "))
+  (if (= 1 x) "m " "  "))
 
 
 (defn print-image
