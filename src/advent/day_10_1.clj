@@ -205,11 +205,14 @@ that location?"
   (let [dx' (- x-to x-from)
         dy' (- y-to y-from)
         hidden? (fn [[x y]] (let [dx (- x x-from)
-                                  dy (- y y-from)]
-                              #_(if (dist-cover? dx' dy' dx dy)
+                                  dy (- y y-from)
+                                  cover (dist-cover? dx' dy' dx dy)]
+                              #_(if cover
                                   (println dx' dy' dx dy))
-                              #_(println [x-to y-to] [x y] dx' dy' dx dy (dist-cover? dx' dy' dx dy))
-                              (dist-cover? dx' dy' dx dy)))]
+                              (if-not cover
+                                (println dx' dy' dx dy))
+                              #_(println [x-to y-to] [x y] dx' dy' dx dy cover)
+                              cover))]
     (into #{}
       (remove hidden? others))))
 
@@ -275,6 +278,9 @@ that location?"
   (let [m (parse-asteroid-map ".#..#\n.....\n#####\n....#\n...##")
         from [1 0]]
     (collect-visible m from))
+  (let [m (parse-asteroid-map ".#..##.###...#######\n##.############..##.\n.#.######.########.#\n.###.#######.####.#.\n#####.##.#.##.###.##\n..#####..#.#########\n####################\n#.####....###.#.#.##\n##.#################\n#####.##.###..####..\n..######..##.#######\n####.##.####...##..#\n.#####..#.######.###\n##...#.##########...\n#.##########.#######\n.####.#.###.###.#.##\n....##.##.###..#####\n.#.#.###########.###\n#.#.#.#####.####.###\n###.##.####.##.#..##")
+        from [11 13]]
+    (count (collect-visible m from)))
   (count
     (parse-asteroid-map ".#..#\n.....\n#####\n....#\n...##"))
   (parse-asteroid-map ".#..#\n.....\n#####"))
