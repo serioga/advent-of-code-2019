@@ -120,7 +120,10 @@ Here are some larger examples:
 
 Find the best location for a new monitoring station. How many other asteroids can be detected from
 that location?"
-  (:require [clojure.string :as string]))
+  (:require
+    [clojure.java.io :as io]
+    [clojure.string :as string]
+    [clojure.test :as t]))
 
 (set! *warn-on-reflection* true)
 
@@ -138,6 +141,64 @@ that location?"
         [x y]))))
 
 
+(defn abs [x] (if (neg? x) (- x) x))
+
+
+(defn beyond? [a b] (and
+                      (pos? (* a b))
+                      (< (abs a) (abs b))))
+
+
+(defn diag? [x y] (= (abs x) (abs y)))
+
+#_(comment
+    (beyond? -1 -2)
+    (beyond? 0 1))
+
+
+(defn dist-cover?
+  [dx' dy' dx dy]
+  (cond
+    ; same location
+    (and (= dx' dx) (= dy' dy)) false
+
+    ; vertical
+    (zero? dx') (and
+                  (zero? dx)
+                  (beyond? dy' dy))
+
+    ; horizontal
+    (zero? dy') (and
+                  (zero? dy)
+                  (beyond? dx' dx))
+
+    ; diagonal
+    (diag? dx' dy') (and
+                      (diag? dx dy)
+                      (beyond? dx' dx)
+                      (beyond? dy' dy))
+
+    ; other directions
+    :else (let [k (fn [d' d] (when (and
+                                     (zero? (rem d d'))
+                                     (beyond? d' d))
+                               (quot d d')))
+                kx (k dx' dx)
+                ky (k dy' dy)]
+
+            (and
+              (some? kx)
+              (some? ky)
+              (= kx ky)))))
+
+#_(comment
+    (dist-cover? 2 2 3 3)
+    (dist-cover? 4 1 8 2)
+    (dist-cover? -4 -1 -12 -3)
+    (dist-cover? 8 2 4 1)
+    (dist-cover? 1 2 3 4))
+
+
 (defn remove-invisible
   "Return `others` without hidden for `from` by `to`."
   [[x-from y-from], [x-to y-to], others]
@@ -145,74 +206,75 @@ that location?"
         dy' (- y-to y-from)
         hidden? (fn [[x y]] (let [dx (- x x-from)
                                   dy (- y y-from)]
-                              (println [x-from y-from] [x-to y-to] [x y] "-" dx' dy' "-" dx dy "-" (and
-                                                                                                     (not (zero? dy'))
-                                                                                                     (zero? (rem dy dy'))
-                                                                                                     (pos? (* dy dy')))
-                                (and
-                                  (or
-                                    (= dx dx')
-                                    (and
-                                      (not (zero? dx'))
-                                      (zero? (rem dx dx'))
-                                      (pos? (* dx dx'))))
-                                  (or
-                                    (= dy dy')
-                                    (and
-                                      (not (zero? dy'))
-                                      (zero? (rem dy dy'))
-                                      (pos? (* dy dy'))))
-                                  (not
-                                    (and
-                                      (= x x-to)
-                                      (= y y-to)))))
-                              (and
-                                (or
-                                  (and
-                                    (zero? dx')
-                                    (zero? dx))
-                                  (and
-                                    (not (zero? dx'))
-                                    (zero? (rem dx dx'))
-                                    (pos? (* dx dx'))))
-                                (or
-                                  (and
-                                    (zero? dy')
-                                    (zero? dy))
-                                  (and
-                                    (not (zero? dy'))
-                                    (zero? (rem dy dy'))
-                                    (pos? (* dy dy'))))
-                                (not
-                                  (and
-                                    (= x x-to)
-                                    (= y y-to))))))]
+                              #_(if (dist-cover? dx' dy' dx dy)
+                                  (println dx' dy' dx dy))
+                              #_(println [x-to y-to] [x y] dx' dy' dx dy (dist-cover? dx' dy' dx dy))
+                              (dist-cover? dx' dy' dx dy)))]
     (into #{}
       (remove hidden? others))))
 
 
 (defn collect-visible
-  [from, asteroid-map]
-  (reduce (fn [m to]
-            (println to m)
-            (remove-invisible from to m))
-    (disj asteroid-map from)
-    (disj asteroid-map from)))
+  [asteroid-map, from]
+  (let [others (disj asteroid-map from)]
+    (reduce (fn [m to]
+              #_(println to m)
+              (remove-invisible from to m))
+      others, others)))
 
+
+(defn find-best
+  {:test (fn []
+           (t/is (= [[3 4] 8] (-> ".#..#\n.....\n#####\n....#\n...##"
+                                (parse-asteroid-map)
+                                (find-best))))
+           (t/is (= [[5 8] 33] (-> "......#.#.\n#..#.#....\n..#######.\n.#.#.###..\n.#..#.....\n..#....#.#\n#..#....#.\n.##.#..###\n##...#..#.\n.#....####"
+                                 (parse-asteroid-map)
+                                 (find-best))))
+           (t/is (= [[1 2] 35] (-> "#.#...#.#.\n.###....#.\n.#....#...\n##.#.#.#.#\n....#.#.#.\n.##..###.#\n..#...##..\n..##....##\n......#...\n.####.###."
+                                 (parse-asteroid-map)
+                                 (find-best))))
+           (t/is (= [[6 3] 41] (-> ".#..#..###\n####.###.#\n....###.#.\n..###.##.#\n##.##.#.#.\n....###..#\n..#.#..#.#\n#..#.#.###\n.##...##.#\n.....#.#.."
+                                 (parse-asteroid-map)
+                                 (find-best))))
+           (t/is (= [[11 13] 210] (-> ".#..##.###...#######\n##.############..##.\n.#.######.########.#\n.###.#######.####.#.\n#####.##.#.##.###.##\n..#####..#.#########\n####################\n#.####....###.#.#.##\n##.#################\n#####.##.###..####..\n..######..##.#######\n####.##.####...##..#\n.#####..#.######.###\n##...#.##########...\n#.##########.#######\n.####.#.###.###.#.##\n....##.##.###..#####\n.#.#.###########.###\n#.#.#.#####.####.###\n###.##.####.##.#..##"
+                                    (parse-asteroid-map)
+                                    (find-best)))))}
+  [asteroid-map]
+  (let [vmap (->> asteroid-map
+               (map (juxt identity #(count (collect-visible asteroid-map %))))
+               (into {}))
+        cmap (group-by second vmap)
+        cmax (apply max (keys cmap))]
+    (first (get cmap cmax))))
+
+#_(comment
+    (t/test-var #'find-best))
+
+
+(defn solve
+  [in]
+  (find-best
+    (parse-asteroid-map in)))
+
+(def input
+  (-> "advent/day_10_input.txt"
+    (io/resource)
+    (slurp)))
 
 (comment
-  (get ".#." 1)
-  (rem -6 3)
-  (rem 3 6)
-  (rem 3 1)
+  (do input)
+  (solve input)
+  (solve ".#..#\n.....\n#####\n....#\n...##")
   (parse-asteroid-map ".#..#\n.....\n#####\n....#\n...##")
+  (parse-asteroid-map input)
   (let [m (parse-asteroid-map ".#..#\n.....\n#####\n....#\n...##")
         from [4 2]
         to [3 2]]
     (remove-invisible from to (-> m (disj from))))
   (let [m (parse-asteroid-map ".#..#\n.....\n#####\n....#\n...##")
-        from [0 2]]
-    (collect-visible from m))
+        from [1 0]]
+    (collect-visible m from))
   (count
     (parse-asteroid-map ".#..#\n.....\n#####\n....#\n...##"))
   (parse-asteroid-map ".#..#\n.....\n#####"))
