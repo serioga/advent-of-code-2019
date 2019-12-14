@@ -156,7 +156,8 @@ that location?"
     (beyond? 0 1))
 
 
-(defn dist-cover?
+(defn dist-cover?'
+  "Wrong implementation"
   [dx' dy' dx dy]
   (cond
     ; same location
@@ -191,12 +192,41 @@ that location?"
               (some? ky)
               (= kx ky)))))
 
+
+(defn dist-cover?
+  [dx' dy' dx dy]
+  (cond
+    ; same location
+    (and (= dx' dx) (= dy' dy)) false
+
+    ; vertical
+    (zero? dx') (and
+                  (zero? dx)
+                  (beyond? dy' dy))
+
+    ; horizontal
+    (zero? dy') (and
+                  (zero? dy)
+                  (beyond? dx' dx))
+
+    :else (and
+            (= (Math/atan2 dx' dy') (Math/atan2 dx dy))
+            (beyond? dx' dx))))
+
+
 #_(comment
     (dist-cover? 2 2 3 3)
     (dist-cover? 4 1 8 2)
     (dist-cover? -4 -1 -12 -3)
     (dist-cover? 8 2 4 1)
-    (dist-cover? 1 2 3 4))
+    (dist-cover? 1 2 3 4)
+    (dist-cover? -6 -3 -10 -5)
+    (dist-cover? 2 1 1 2)
+    (dist-cover? -1 0 -2 0)
+    (dist-cover? 2 2 3 3)
+    (dist-cover? -2 -4 -1 -2)
+    (Math/atan2 -1 0)
+    (Math/atan2 -2 0))
 
 
 (defn remove-invisible
@@ -207,12 +237,13 @@ that location?"
         hidden? (fn [[x y]] (let [dx (- x x-from)
                                   dy (- y y-from)
                                   cover (dist-cover? dx' dy' dx dy)]
-                              #_(if cover
-                                  (println dx' dy' dx dy))
-                              (if-not cover
-                                (println dx' dy' dx dy))
+                              #_(when cover
+                                  (println [x-to y-to] dx' dy' dx dy [x y]))
+                              #_(when-not cover
+                                  (println [x-to y-to] dx' dy' dx dy [x y] (dist-cover?' dx' dy' dx dy)))
                               #_(println [x-to y-to] [x y] dx' dy' dx dy cover)
                               cover))]
+    (print ".")
     (into #{}
       (remove hidden? others))))
 
@@ -249,6 +280,7 @@ that location?"
                (into {}))
         cmap (group-by second vmap)
         cmax (apply max (keys cmap))]
+    (println "")
     (first (get cmap cmax))))
 
 #_(comment
@@ -276,7 +308,7 @@ that location?"
         to [3 2]]
     (remove-invisible from to (-> m (disj from))))
   (let [m (parse-asteroid-map ".#..#\n.....\n#####\n....#\n...##")
-        from [1 0]]
+        from [3 4]]
     (collect-visible m from))
   (let [m (parse-asteroid-map ".#..##.###...#######\n##.############..##.\n.#.######.########.#\n.###.#######.####.#.\n#####.##.#.##.###.##\n..#####..#.#########\n####################\n#.####....###.#.#.##\n##.#################\n#####.##.###..####..\n..######..##.#######\n####.##.####...##..#\n.#####..#.######.###\n##...#.##########...\n#.##########.#######\n.####.#.###.###.#.##\n....##.##.###..#####\n.#.#.###########.###\n#.#.#.#####.####.###\n###.##.####.##.#..##")
         from [11 13]]
