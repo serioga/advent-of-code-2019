@@ -76,8 +76,89 @@ In the large example above (the one with the best monitoring station location at
 
 The Elves are placing bets on which will be the 200th asteroid to be vaporized. Win the bet by
 determining which asteroid that will be; what do you get if you multiply its X coordinate by 100 and
-then add its Y coordinate? (For example, 8,2 becomes 802.)")
+then add its Y coordinate? (For example, 8,2 becomes 802.)"
+
+  (:require
+    [advent.day-10-1 :refer [dist
+                             input
+                             parse-asteroid-map]])
+  (:import
+    (clojure.lang PersistentQueue)))
 
 (set! *warn-on-reflection* true)
 
+
+(defn group-by-angle
+  [[x-from y-from :as from]]
+  (fn group-by-angle
+    [asteroid-map]
+    (group-by (fn angle [[x y]]
+                (let [dx (- x x-from)
+                      dy (- y y-from)]
+                  (- (Math/atan2 dx dy))))
+      (disj asteroid-map from))))
+
+
+(defn dist-sort
+  [[x-from y-from]]
+  (fn dist-sort
+    [[x y]]
+    (let [dx (- x x-from)
+          dy (- y y-from)]
+      (dist dx dy))))
+
+
+(defn queue
+  [xs]
+  (into PersistentQueue/EMPTY xs))
+
+
+(defn vaporize
+  [xs]
+  (loop [res []
+         q (queue xs)]
+    (if-some [[asteroid & others] (peek q)]
+      (if (some? asteroid)
+        (recur
+          (conj res asteroid)
+          (conj (pop q) others))
+        (recur
+          res q))
+      res)))
+
+
+(defn find-nth
+  [m from n]
+  (->> m
+    ((group-by-angle from))
+    (sort-by first)
+    (keep (fn [[_ xs]]
+            (sort-by (dist-sort from) xs)))
+    (vaporize)
+    (take n)
+    (last)))
+
+
+(defn solve
+  []
+  (find-nth (parse-asteroid-map input) [26 29] 200))
+
+
+(comment
+  (solve)
+  (seq (queue [1 2 3]))
+  (let [m (parse-asteroid-map ".#....#####...#..\n##...##.#####..##\n##...#...#.#####.\n..#.....#...###..\n..#.#.....#....##")]
+    ((group-by-angle [8 3]) m))
+  (->> (parse-asteroid-map ".#....#####...#..\n##...##.#####..##\n##...#...#.#####.\n..#.....#...###..\n..#.#.....#....##")
+    ((group-by-angle [8 3]))
+    (sort-by first)
+    (keep (fn [[_ xs]]
+            (sort-by (dist-sort [8 3]) xs)))
+    (vaporize)
+    (take 5)
+    (last))
+  (-> (parse-asteroid-map ".#....#####...#..\n##...##.#####..##\n##...#...#.#####.\n..#.....#...###..\n..#.#.....#....##")
+    (find-nth [8 3] 5))
+  (-> (parse-asteroid-map ".#..##.###...#######\n##.############..##.\n.#.######.########.#\n.###.#######.####.#.\n#####.##.#.##.###.##\n..#####..#.#########\n####################\n#.####....###.#.#.##\n##.#################\n#####.##.###..####..\n..######..##.#######\n####.##.####...##..#\n.#####..#.######.###\n##...#.##########...\n#.##########.#######\n.####.#.###.###.#.##\n....##.##.###..#####\n.#.#.###########.###\n#.#.#.#####.####.###\n###.##.####.##.#..##")
+    (find-nth [11 13] 200)))
 
