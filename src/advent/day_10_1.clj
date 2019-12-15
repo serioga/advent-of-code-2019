@@ -141,77 +141,23 @@ that location?"
         [x y]))))
 
 
-(defn abs [x] (if (neg? x) (- x) x))
+(defn dist
+  [dx dy]
+  (+
+    (* dx dx)
+    (* dy dy)))
 
 
-(defn beyond? [a b] (and
-                      (pos? (* a b))
-                      (< (abs a) (abs b))))
-
-
-(defn diag? [x y] (= (abs x) (abs y)))
-
-#_(comment
-    (beyond? -1 -2)
-    (beyond? 0 1))
-
-
-(defn dist-cover?'
-  "Wrong implementation"
-  [dx' dy' dx dy]
-  (cond
-    ; same location
-    (and (= dx' dx) (= dy' dy)) false
-
-    ; vertical
-    (zero? dx') (and
-                  (zero? dx)
-                  (beyond? dy' dy))
-
-    ; horizontal
-    (zero? dy') (and
-                  (zero? dy)
-                  (beyond? dx' dx))
-
-    ; diagonal
-    (diag? dx' dy') (and
-                      (diag? dx dy)
-                      (beyond? dx' dx)
-                      (beyond? dy' dy))
-
-    ; other directions
-    :else (let [k (fn [d' d] (when (and
-                                     (zero? (rem d d'))
-                                     (beyond? d' d))
-                               (quot d d')))
-                kx (k dx' dx)
-                ky (k dy' dy)]
-
-            (and
-              (some? kx)
-              (some? ky)
-              (= kx ky)))))
+(defn beyond?
+  [dx1 dy1 dx2 dy2]
+  (< (dist dx1 dy1) (dist dx2 dy2)))
 
 
 (defn dist-cover?
   [dx' dy' dx dy]
-  (cond
-    ; same location
-    (and (= dx' dx) (= dy' dy)) false
-
-    ; vertical
-    (zero? dx') (and
-                  (zero? dx)
-                  (beyond? dy' dy))
-
-    ; horizontal
-    (zero? dy') (and
-                  (zero? dy)
-                  (beyond? dx' dx))
-
-    :else (and
-            (= (Math/atan2 dx' dy') (Math/atan2 dx dy))
-            (beyond? dx' dx))))
+  (and
+    (= (Math/atan2 dx' dy') (Math/atan2 dx dy))
+    (beyond? dx' dy' dx dy)))
 
 
 #_(comment
@@ -237,11 +183,6 @@ that location?"
         hidden? (fn [[x y]] (let [dx (- x x-from)
                                   dy (- y y-from)
                                   cover (dist-cover? dx' dy' dx dy)]
-                              #_(when cover
-                                  (println [x-to y-to] dx' dy' dx dy [x y]))
-                              #_(when-not cover
-                                  (println [x-to y-to] dx' dy' dx dy [x y] (dist-cover?' dx' dy' dx dy)))
-                              #_(println [x-to y-to] [x y] dx' dy' dx dy cover)
                               cover))]
     (print ".")
     (into #{}
